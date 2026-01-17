@@ -288,12 +288,17 @@ import {
   createRecipeCard,
   updateRecipeTitle,
   createLoadingSpinner,
+  controlSectionsVisibility,
+  createRecipeDetailsCard,
 } from "./utils/ui.helpers.js";
 
 import { ds_get_all_areas } from "./datasources/ds_get_all_areas.js";
 import { ds_get_all_categories } from "./datasources/ds_get_all_categories.js";
 import { ds_get_all_recipes } from "./datasources/ds_get_all_recipes.js";
 import { ds_get_recipe_by_area } from "./datasources/ds_get_recipe_by_area.js";
+import { ds_get_recipe_by_category } from "./datasources/ds_get_recipe_by_category.js";
+import { ds_get_recipe_by_categoryId } from "./datasources/ds_get_recipe_details_by_categoryId.js";
+import { ds_search_recipe } from "./datasources/ds_search_recipe.js";
 let btnList = document.querySelectorAll("ul li .nav-link ");
 let btnText = document.querySelectorAll("ul li .nav-link span");
 let productsSection = document.getElementById("products-section");
@@ -307,7 +312,16 @@ let appLoadingOverlay = document.getElementById("app-loading-overlay");
 let searchFiltersTabs = searchFiltersSection.children[0].children[1];
 let categoriesGrid = document.getElementById("categories-grid");
 let recipesGrid = document.getElementById("recipes-grid");
-console.log(searchFiltersTabs.children);
+let sections = [
+  productsSection,
+  foodlogSection,
+  allRecipesSection,
+  mealCategoriesSection,
+  searchFiltersSection,
+  mealDetails,
+];
+let searchInput = document.getElementById("search-input");
+
 function displaySections() {
   productsSection.classList.add("hidden");
   foodlogSection.classList.add("hidden");
@@ -392,6 +406,7 @@ class App {
     appLoadingOverlay.classList.add("loading");
     console.log("Data loaded", this.state);
     this.renderUi();
+
     this.bindEventListeners();
   }
 
@@ -426,6 +441,48 @@ class App {
 
   bindEventListeners() {
     // Bind event listeners here
+
+    // Add search input event listener
+    searchInput.addEventListener("input", (e) => {
+      console.log(e.target.value);
+      const searchValue = e.target.value.trim();
+      recipesGrid.innerHTML = createLoadingSpinner();
+      ds_search_recipe(searchValue).then((data) => {
+        recipesGrid.innerHTML = "";
+        recipesGrid.insertAdjacentHTML(
+          "beforeend",
+          data.results.map((recipe) => createRecipeCard(recipe)).join("")
+        );
+
+        Array.from(recipesGrid.children).forEach((recipe) => {
+          recipe.addEventListener("click", (e) => {
+            console.log("Recipe card clicked", e.currentTarget);
+            console.log("Meal ID:", e.currentTarget.dataset.mealId);
+            ds_get_recipe_by_categoryId(e.currentTarget.dataset.mealId).then(
+              (data) => {
+                console.log("Recipe details:", data.result);
+                controlSectionsVisibility(sections, [mealDetails]);
+                mealDetails.innerHTML = "";
+                mealDetails.insertAdjacentHTML(
+                  "beforeend",
+                  createRecipeDetailsCard(data.result)
+                );
+                let backToMealsBtn =
+                  document.getElementById("back-to-meals-btn");
+                backToMealsBtn.addEventListener("click", () => {
+                  console.log("Back to Meals button clicked");
+                  controlSectionsVisibility(sections, [
+                    allRecipesSection,
+                    mealCategoriesSection,
+                    searchFiltersSection,
+                  ]);
+                });
+              }
+            );
+          });
+        });
+      });
+    });
     // searchFiltersTabs.children
     Array.from(searchFiltersTabs.children).forEach((tab) => {
       tab.addEventListener("click", (e) => {
@@ -442,6 +499,9 @@ class App {
         ];
         Array.from(searchFiltersTabs.children).forEach((btn) => {
           btn.classList.remove(...activeClasses);
+          if (!btn.classList.contains("text-gray-700")) {
+            btn.classList.add(...inactiveClasses);
+          }
         });
 
         e.currentTarget.classList.add(...activeClasses);
@@ -472,6 +532,86 @@ class App {
         });
       });
     });
+
+    //  add event listener for the Categories cards
+
+    Array.from(categoriesGrid.children).forEach((cat) => {
+      cat.addEventListener("click", (e) => {
+        recipesGrid.innerHTML = "";
+        recipesGrid.insertAdjacentHTML("beforeend", createLoadingSpinner());
+        const category = e.currentTarget.dataset.category;
+        ds_get_recipe_by_category(e.currentTarget.dataset.category).then(
+          (data) => {
+            const recipeList = data.results;
+            recipesGrid.innerHTML = "";
+            recipesGrid.insertAdjacentHTML(
+              "beforeend",
+              recipeList.map((recipe) => createRecipeCard(recipe)).join("")
+            );
+            updateRecipeTitle(allRecipesSection, recipeList.length, category);
+            Array.from(recipesGrid.children).forEach((recipe) => {
+              recipe.addEventListener("click", (e) => {
+                console.log("Recipe card clicked", e.currentTarget);
+                console.log("Meal ID:", e.currentTarget.dataset.mealId);
+                ds_get_recipe_by_categoryId(
+                  e.currentTarget.dataset.mealId
+                ).then((data) => {
+                  console.log("Recipe details:", data.result);
+                  controlSectionsVisibility(sections, [mealDetails]);
+                  mealDetails.innerHTML = "";
+                  mealDetails.insertAdjacentHTML(
+                    "beforeend",
+                    createRecipeDetailsCard(data.result)
+                  );
+                  let backToMealsBtn =
+                    document.getElementById("back-to-meals-btn");
+                  backToMealsBtn.addEventListener("click", () => {
+                    console.log("Back to Meals button clicked");
+                    controlSectionsVisibility(sections, [
+                      allRecipesSection,
+                      mealCategoriesSection,
+                      searchFiltersSection,
+                    ]);
+                  });
+                });
+              });
+            });
+          }
+        );
+      });
+    });
+
+    //  add event listener for the recipe cards
+    Array.from(recipesGrid.children).forEach((recipe) => {
+      recipe.addEventListener("click", (e) => {
+        console.log("Recipe card clicked", e.currentTarget);
+        console.log("Meal ID:", e.currentTarget.dataset.mealId);
+        ds_get_recipe_by_categoryId(e.currentTarget.dataset.mealId).then(
+          (data) => {
+            console.log("Recipe details:", data.result);
+            controlSectionsVisibility(sections, [mealDetails]);
+            mealDetails.innerHTML = "";
+            mealDetails.insertAdjacentHTML(
+              "beforeend",
+              createRecipeDetailsCard(data.result)
+            );
+            let backToMealsBtn = document.getElementById("back-to-meals-btn");
+            backToMealsBtn.addEventListener("click", () => {
+              console.log("Back to Meals button clicked");
+              controlSectionsVisibility(sections, [
+                allRecipesSection,
+                mealCategoriesSection,
+                searchFiltersSection,
+              ]);
+            });
+          }
+        );
+      });
+    });
+    // backToMealsBtn.addEventListener("click", () => {
+    //   console.log("Back to Meals button clicked");
+    //   controlSectionsVisibility(sections, productsSection);
+    // });
   }
 }
 
@@ -493,3 +633,14 @@ hover:bg-emerald-700 hover:text-white  bg-emerald-600 text-white
  "hover:bg-gray-200"  "bg-gray-100" "text-gray-700"
 
 */
+
+// function makeFunc() {
+//   const name = "Mozilla";
+//   function displayName() {
+//     console.log(name);
+//   }
+//   return displayName;
+// }
+
+// const myFunc = makeFunc();
+// myFunc();
