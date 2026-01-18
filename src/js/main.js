@@ -16,8 +16,11 @@ import {
   attachEventToRecipeCard,
   createProductCard,
   createProductCardByBarcode,
-  chickData,
   displayNotFoundCard,
+  clearProductsGrid,
+  createProductCategoryButton,
+  handleProductsGrid,
+  attachEventToProductCard,
 } from "./utils/ui.helpers.js";
 
 import { ds_get_all_areas } from "./datasources/ds_get_all_areas.js";
@@ -56,10 +59,11 @@ let lookupBarcodeBtn = document.getElementById("lookup-barcode-btn");
 let productsEmpty = document.getElementById("products-empty");
 let productCategories = document.getElementById("product-categories");
 let productScore = document.getElementById("product-score");
-let productDetailModal = document.getElementById("product-detail-modal");
+// let productDetailModal = document.getElementById("product-detail-modal");
 let gridViewBtn = document.getElementById("grid-view-btn");
 let listViewBtn = document.getElementById("list-view-btn");
 let recipesGridLayout = document.getElementById("recipes-grid-Layout");
+// let logMealBtn = document.getElementById("log-meal-btn");
 
 let sections = [
   productsSection,
@@ -68,8 +72,9 @@ let sections = [
   mealCategoriesSection,
   searchFiltersSection,
   mealDetails,
-  productDetailModal,
 ];
+
+console.log("product cat", productCategories.children);
 
 function displaySections() {
   controlSectionsVisibility(sections, [
@@ -108,7 +113,6 @@ btnList.forEach((element) => {
   });
 });
 
-
 class App {
   constructor() {
     // this.showLoadingOverlay = showLoadingOverlay;
@@ -116,12 +120,16 @@ class App {
       areas: [],
       categories: [],
       recipes: [],
+      productCategories: [],
     };
   }
   async on_init() {
     this.state.areas = (await ds_get_all_areas()).results;
     this.state.categories = (await ds_get_all_categories()).results;
     this.state.recipes = (await ds_get_all_recipes()).results;
+    this.state.productCategories = (
+      await ds_get_all_products_category()
+    ).results;
     appLoadingOverlay.classList.add("loading");
     this.renderUi();
 
@@ -155,6 +163,12 @@ class App {
         .join(""),
     );
     updateRecipeTitle(allRecipesSection, this.state.recipes.length);
+    productCategories.insertAdjacentHTML(
+      "beforeend",
+      this.state.productCategories
+        .map((cat) => createProductCategoryButton(cat))
+        .join(""),
+    );
   }
 
   bindEventListeners() {
@@ -265,33 +279,6 @@ class App {
               mealCategoriesSection,
               searchFiltersSection,
             );
-            // Array.from(recipesGrid.children).forEach((recipe) => {
-            //   recipe.addEventListener("click", (e) => {
-            //     console.log("Recipe card clicked", e.currentTarget);
-            //     console.log("Meal ID:", e.currentTarget.dataset.mealId);
-            //     ds_get_recipe_by_categoryId(
-            //       e.currentTarget.dataset.mealId,
-            //     ).then((data) => {
-            //       console.log("Recipe details:", data.result);
-            //       controlSectionsVisibility(sections, [mealDetails]);
-            //       mealDetails.innerHTML = "";
-            //       mealDetails.insertAdjacentHTML(
-            //         "beforeend",
-            //         createRecipeDetailsCard(data.result),
-            //       );
-            //       let backToMealsBtn =
-            //         document.getElementById("back-to-meals-btn");
-            //       backToMealsBtn.addEventListener("click", () => {
-            //         console.log("Back to Meals button clicked");
-            //         controlSectionsVisibility(sections, [
-            //           allRecipesSection,
-            //           mealCategoriesSection,
-            //           searchFiltersSection,
-            //         ]);
-            //       });
-            //     });
-            //   });
-            // });
           },
         );
       });
@@ -309,42 +296,89 @@ class App {
 
     searchProductBtn.addEventListener("click", async () => {
       productsGrid.innerHTML = createLoadingSpinner();
-      await ds_get_all_products_by_name(productSearchInput.value).then(
-        (data) => {
-          data
-            ? chickData(productsEmpty, productsCount)
-            : displayNotFoundCard(productsEmpty, productsCount);
+      const data = await ds_get_all_products_by_name(productSearchInput.value);
+      handleProductsGrid(
+        data?.results,
+        productsEmpty,
+        productsGrid,
+        productsCount,
+      );
+      attachEventToProductCard(
+        Array.from(productsGrid.children),
 
-          productsGrid.innerHTML = "";
-          productsGrid.insertAdjacentHTML(
-            "beforeend",
-            data.results
-              .map((product) => {
-                return createProductCard(product);
-              })
-              .join(""),
-          );
-        },
+        productsSection,
       );
     });
 
     lookupBarcodeBtn.addEventListener("click", async () => {
       productsGrid.innerHTML = createLoadingSpinner();
       await ds_get_product_by_barcode(barcodeInput.value).then((data) => {
+        if (Object.keys(data?.result).length > 0) {
+          console.log("Product found");
+          console.log(productsGrid);
+          clearProductsGrid(productsEmpty, productsGrid);
+          productsCount.innerHTML = `Found 1 product ${data.result.name} with barcode "${barcodeInput.value}"`;
+          productsGrid.insertAdjacentHTML(
+            "beforeend",
+            createProductCardByBarcode(data.result),
+          );
+          attachEventToProductCard();
+        }
+        // chickData(productsEmpty, productsCount)
+        else displayNotFoundCard(productsEmpty, productsCount);
+      });
+    });
 
-        data
-          ? chickData(productsEmpty, productsCount)
-          : displayNotFoundCard(productsEmpty, productsCount);
-
-        productsGrid.innerHTML = "";
-        productsGrid.insertAdjacentHTML(
-          "beforeend",
-          Object.entries(data.result)
-            .map((key, value) => {
-              return createProductCardByBarcode(key, value);
-            })
-            .join(""),
+    Array.from(productCategories.children).forEach((cat) => {
+      cat.addEventListener("click", (e) => {
+        console.log("clicked category", e.currentTarget.textContent.trim());
+        productsGrid.innerHTML = createLoadingSpinner();
+        ds_get_products_by_category(e.currentTarget.textContent.trim()).then(
+          (data) => {
+            console.log("products by category", data.results);
+            handleProductsGrid(
+              data?.results,
+              productsEmpty,
+              productsGrid,
+              productsCount,
+            );
+          },
         );
+      });
+    });
+    Array.from(productScore.children).forEach((score) => {
+      score.addEventListener("click", (e) => {
+        console.log("clicked score", e.currentTarget.dataset.grade);
+        const grade = e.currentTarget.dataset.grade || "all";
+        const filteredProducts = Array.from(productsGrid.children).filter(
+          (p) =>
+            p
+              .querySelector(".nutri-score-badge")
+              .textContent.trim()
+              .slice(-1) === grade || grade === "all",
+        );
+        console.log(
+          "filtered products",
+          filteredProducts.map((p) => p),
+        );
+        if (filteredProducts.length > 0) {
+          productsGrid.innerHTML = filteredProducts
+            .map((p) => p.outerHTML)
+            .join("");
+
+          productsCount.innerHTML = `Found ${filteredProducts.length} products with Nutri-Score "${grade.toUpperCase()}"`;
+          attachEventToProductCard(Array.from(productsGrid.children));
+        } else {
+          productsGrid.innerHTML = "";
+          displayNotFoundCard(productsEmpty, productsCount);
+          productsCount.innerHTML = `Found 0 products with Nutri-Score "${grade.toUpperCase()}"`;
+        }
+      });
+    });
+
+    Array.from(productsGrid.children).forEach((card) => {
+      card.addEventListener("click", (e) => {
+        console.log("clicked product card", e.currentTarget);
       });
     });
   }

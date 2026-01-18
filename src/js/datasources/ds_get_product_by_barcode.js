@@ -6,8 +6,8 @@ export async function ds_get_product_by_barcode(barcode) {
       throw new Error("HTTP ERROR " + response.status);
     }
     const data = await response.json();
-    return data;
     console.log(data);
+    return data;
   } catch (error) {
     console.log("Error fetching data:", error);
   }
