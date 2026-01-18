@@ -1,37 +1,4 @@
 import { ds_get_recipe_by_categoryId } from "../datasources/ds_get_recipe_details_by_categoryId.js";
-export function displayProductScannerSection({
-  content,
-  productsSection,
-  foodlogSection,
-  allRecipesSection,
-  mealCategoriesSection,
-  searchFiltersSection,
-  topicName,
-}) {
-  productsSection.classList.remove("hidden");
-  foodlogSection.classList.add("hidden");
-  allRecipesSection.classList.add("hidden");
-  mealCategoriesSection.classList.add("hidden");
-  searchFiltersSection.classList.add("hidden");
-  topicName.innerHTML = content;
-}
-
-export function displayFoodSection({
-  content,
-  productsSection,
-  foodlogSection,
-  allRecipesSection,
-  mealCategoriesSection,
-  searchFiltersSection,
-  topicName,
-}) {
-  productsSection.classList.add("hidden");
-  foodlogSection.classList.remove("hidden");
-  allRecipesSection.classList.add("hidden");
-  mealCategoriesSection.classList.add("hidden");
-  searchFiltersSection.classList.add("hidden");
-  topicName.innerHTML = content;
-}
 
 export function createAreaTab(area) {
   return `<button
@@ -391,7 +358,6 @@ export function createRecipeDetailsCard(recipe) {
 }
 
 function createIngredientItem(ingredients) {
-  console.log("This is from ", ingredients);
   const box = ingredients
     .map((ingredient) => {
       return `
@@ -436,9 +402,14 @@ function createInstructionItem(instructions) {
   return box;
 }
 
-export function attachEventToRecipeCard(recipesGrid , mealDetails , sections,allRecipesSection,
-              mealCategoriesSection,
-              searchFiltersSection,) {
+export function attachEventToRecipeCard(
+  recipesGrid,
+  mealDetails,
+  sections,
+  allRecipesSection,
+  mealCategoriesSection,
+  searchFiltersSection,
+) {
   Array.from(recipesGrid.children).forEach((recipe) => {
     recipe.addEventListener("click", (e) => {
       console.log("Recipe card clicked", e.currentTarget);
@@ -466,18 +437,18 @@ export function attachEventToRecipeCard(recipesGrid , mealDetails , sections,all
     });
   });
 }
- export function createProductCard(){
-  return`
+export function createProductCard(product) {
+  return `
    <div
                 class="product-card bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group"
-                data-barcode="7613034626844"
+                data-barcode="${product.barcode}"
               >
                 <div
                   class="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden"
                 >
                   <img
                     class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-                    src="https://images.openfoodfacts.org/images/products/316/893/015/9742/front_fr.54.400.jpg"
+                    src="${product.image}"
                     alt="Product Name"
                     loading="lazy"
                   />
@@ -507,41 +478,133 @@ export function attachEventToRecipeCard(recipesGrid , mealDetails , sections,all
                   <h3
                     class="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-emerald-600 transition-colors"
                   >
-                    Product Name
+                    ${product.name}
                   </h3>
 
                   <div
                     class="flex items-center gap-3 text-xs text-gray-500 mb-3"
                   >
                     <span
-                      ><i class="fa-solid fa-weight-scale mr-1"></i>250g</span
+                      ><i class="fa-solid fa-weight-scale mr-1"></i>${product.nutrients.sodium}g</span
                     >
                     <span
-                      ><i class="fa-solid fa-fire mr-1"></i>350 kcal/100g</span
+                      ><i class="fa-solid fa-fire mr-1"></i>${product.nutrients.calories} kcal/100g</span
                     >
                   </div>
 
                   <!-- Mini Nutrition -->
                   <div class="grid grid-cols-4 gap-1 text-center">
                     <div class="bg-emerald-50 rounded p-1.5">
-                      <p class="text-xs font-bold text-emerald-700">8.5g</p>
+                      <p class="text-xs font-bold text-emerald-700">${product.nutrients.protein}</p>
                       <p class="text-[10px] text-gray-500">Protein</p>
                     </div>
                     <div class="bg-blue-50 rounded p-1.5">
-                      <p class="text-xs font-bold text-blue-700">45.2g</p>
+                      <p class="text-xs font-bold text-blue-700">${product.nutrients.carbs}</p>
                       <p class="text-[10px] text-gray-500">Carbs</p>
                     </div>
                     <div class="bg-purple-50 rounded p-1.5">
-                      <p class="text-xs font-bold text-purple-700">12.3g</p>
+                      <p class="text-xs font-bold text-purple-700">${product.nutrients.fat}</p>
                       <p class="text-[10px] text-gray-500">Fat</p>
                     </div>
                     <div class="bg-orange-50 rounded p-1.5">
-                      <p class="text-xs font-bold text-orange-700">18.5g</p>
+                      <p class="text-xs font-bold text-orange-700">${product.nutrients.sugar}</p>
                       <p class="text-[10px] text-gray-500">Sugar</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-  `
- }
+  `;
+}
+export function createProductCardByBarcode(key, value) {
+  return `
+   <div
+                class="product-card bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group"
+                data-barcode="   "
+              >
+                <div
+                  class="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden"
+                >
+                  <img
+                    class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                    src="${value.image}"
+                    alt="Product Name"
+                    loading="lazy"
+                  />
+
+                  <!-- Nutri-Score Badge -->
+                  <div
+                    class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded uppercase"
+                  >
+                    Nutri-Score A
+                  </div>
+
+                  <!-- NOVA Badge -->
+                  <div
+                    class="absolute top-2 right-2 bg-lime-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center"
+                    title="NOVA 2"
+                  >
+                    2
+                  </div>
+                </div>
+
+                <div class="p-4">
+                  <p
+                    class="text-xs text-emerald-600 font-semibold mb-1 truncate"
+                  >
+                    Brand Name
+                  </p>
+                  <h3
+                    class="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-emerald-600 transition-colors"
+                  >
+                   ${value.name}
+                  </h3>
+
+                  <div
+                    class="flex items-center gap-3 text-xs text-gray-500 mb-3"
+                  >
+                    <span
+                      ><i class="fa-solid fa-weight-scale mr-1"></i>g</span
+                    >
+                    <span
+                      ><i class="fa-solid fa-fire mr-1"></i>kcal/100g</span
+                    >
+                  </div>
+
+                  <!-- Mini Nutrition -->
+                  <div class="grid grid-cols-4 gap-1 text-center">
+                    <div class="bg-emerald-50 rounded p-1.5">
+                      <p class="text-xs font-bold text-emerald-700"></p>
+                      <p class="text-[10px] text-gray-500">Protein</p>
+                    </div>
+                    <div class="bg-blue-50 rounded p-1.5">
+                      <p class="text-xs font-bold text-blue-700"></p>
+                      <p class="text-[10px] text-gray-500">Carbs</p>
+                    </div>
+                    <div class="bg-purple-50 rounded p-1.5">
+                      <p class="text-xs font-bold text-purple-700"></p>
+                      <p class="text-[10px] text-gray-500">Fat</p>
+                    </div>
+                    <div class="bg-orange-50 rounded p-1.5">
+                      <p class="text-xs font-bold text-orange-700"></p>
+                      <p class="text-[10px] text-gray-500">Sugar</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+  `;
+}
+/*
+
+['barcode', 'name', 'brand', 'image', 'nutritionGrade', 'novaGroup', 'nutrients']
+*/
+
+export function chickData(productsEmpty ,productsCount) {
+  productsEmpty.classList.add("hidden");
+  productsCount.innerHTML = `Found 64 products for "pepsi"`;
+}
+export function displayNotFoundCard(productsEmpty ,productsCount) {
+  productsEmpty.classList.remove("hidden");
+  productsCount.innerHTML = `Search for products to see results`;
+}
