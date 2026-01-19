@@ -47,7 +47,7 @@ Base URL: `https://www.themealdb.com/api/json/v1/1/`
 | `/filter.php?a={area}` | Filter by area/cuisine | [Try it](https://www.themealdb.com/api/json/v1/1/filter.php?a=Italian) |
 | `/random.php` | Get random meal | [Try it](https://www.themealdb.com/api/json/v1/1/random.php) |
 
-## ✅ Tasks to Complete
+## ✅ Tasks to Complete .
 
 ### Level 1: Basic Functionality
 - [ ] Fetch and display meal categories in `#categories-grid`
